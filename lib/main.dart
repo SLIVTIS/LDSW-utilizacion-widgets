@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 void main() {
   runApp(const MyApp());
@@ -13,87 +15,131 @@ class MyApp extends StatelessWidget {
       title: 'Cine Vault',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        useMaterial3: true,
       ),
-      home: const MyHomePage(title: 'Welcome to Flutter'),
+      home: const MyHomePage(),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
+class MyHomePage extends StatelessWidget {
+  const MyHomePage({super.key});
 
-  final String title;
-
-  @override
-  State<MyHomePage> createState() => _MyHomePageState();
-}
-
-class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        title: Text(widget.title),
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text(
-              'Hello World',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 20), // Espaciado
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Imagen de fondo
+          Image.asset(
+            'assets/images/splash_background.png',
+            fit: BoxFit.cover,
+          ),
 
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: const [
-                Icon(Icons.movie, size: 40, color: Colors.deepPurple),
-                SizedBox(width: 10),
-                Text(
-                  'Cine Vault',
-                  style: TextStyle(fontSize: 20),
-                ),
-              ],
-            ),
+          // Capa semitransparente
+          Container(
+            color: Colors.black.withAlpha((255 * 0.3).toInt()),
+          ),
 
-            const SizedBox(height: 20),
-
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.deepPurple.shade100,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Text(
-                'Explora nuestras películas',
-                style: TextStyle(fontSize: 18),
-              ),
-            ),
-
-            const SizedBox(height: 20),
-
-            Stack(
-              alignment: Alignment.center,
+          // Contenido principal centrado
+          Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Container(
-                  width: 150,
-                  height: 150,
-                  decoration: BoxDecoration(
-                    color: Colors.deepPurple.shade300,
-                    shape: BoxShape.circle,
+                const Icon(
+                  Icons.movie_creation_rounded,
+                  color: Colors.white,
+                  size: 80,
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  'Cine Vault',
+                  style: TextStyle(
+                    fontSize: 36,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
                   ),
                 ),
+                const SizedBox(height: 20),
                 const Text(
-                  '🎬',
-                  style: TextStyle(fontSize: 40),
+                  '¡Bienvenido a la mejor app de películas!',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 20,
+                    color: Colors.white70,
+                  ),
+                ),
+                const SizedBox(height: 30),
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const PokemonListPage(),
+                      ),
+                    );
+                  },
+                  child: const Text('Ver Pokémon'),
                 ),
               ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
+    );
+  }
+}
+
+class PokemonListPage extends StatefulWidget {
+  const PokemonListPage({super.key});
+
+  @override
+  State<PokemonListPage> createState() => _PokemonListPageState();
+}
+
+class _PokemonListPageState extends State<PokemonListPage> {
+  List<String> pokemons = [];
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    fetchPokemons();
+  }
+
+  Future<void> fetchPokemons() async {
+    final response = await http.get(Uri.parse('https://pokeapi.co/api/v2/pokemon?limit=50'));
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      setState(() {
+        pokemons = List<String>.from(data['results'].map((p) => p['name']));
+        isLoading = false;
+      });
+    } else {
+      setState(() {
+        isLoading = false;
+      });
+      throw Exception('Error al cargar los Pokémon');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Lista de Pokémon')),
+      body: isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : ListView.builder(
+              itemCount: pokemons.length,
+              itemBuilder: (context, index) {
+                return ListTile(
+                  leading: Text('#${index + 1}'),
+                  title: Text(pokemons[index].toUpperCase()),
+                );
+              },
+            ),
     );
   }
 }
